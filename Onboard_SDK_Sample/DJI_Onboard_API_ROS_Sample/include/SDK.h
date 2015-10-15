@@ -34,4 +34,5 @@
 #include <dji_ros/local_navigationAction.h>
 #include <dji_ros/gps_navigationAction.h>
 #include <dji_ros/waypoint_navigationAction.h>
+#include <dji_ros/web_waypoint_receiveAction.h>
 #endif

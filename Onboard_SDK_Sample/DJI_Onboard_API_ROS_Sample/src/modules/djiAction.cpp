@@ -2,6 +2,8 @@
 #define C_EARTH (double) 6378137.0
 #define C_PI (double) 3.141592653589793
 
+#include <iostream>
+
 namespace action_handler
 {
 	
@@ -9,7 +11,8 @@ namespace action_handler
    local_navigation_action_type* local_navigation_action_ptr;
    gps_navigation_action_type* gps_navigation_action_ptr;
 	waypoint_navigation_action_type* waypoint_navigation_action_ptr; 
-	
+	web_waypoint_receive_action_type* web_waypoint_receive_action_ptr;
+
 
 	dji_ros::taskFeedback  task_action_feedback;
 	dji_ros::taskResult  task_action_result; 
@@ -22,6 +25,9 @@ namespace action_handler
 
 	dji_ros::waypoint_navigationFeedback waypoint_navigation_feedback;
 	dji_ros::waypoint_navigationResult waypoint_navigation_result;
+
+	dji_ros::web_waypoint_receiveFeedback web_waypoint_receive_feedback;
+	dji_ros::web_waypoint_receiveResult web_waypoint_receive_result;
 
 
 	bool task_action_callback(const dji_ros::taskGoalConstPtr& goal, task_action_type* task_action)
@@ -199,6 +205,29 @@ namespace action_handler
 		return true;
 	}
 
+	bool web_waypoint_receive_action_callback(const dji_ros::web_waypoint_receiveGoalConstPtr& goal, web_waypoint_receive_action_type* web_waypoint_receive_action)
+	{
+		//TODO: get the waypoints data from JS
+		// --- invalid begin
+		dji_ros::waypointList newWaypointList;
+		newWaypointList = goal->waypointList;
+
+		ROS_INFO("Get!!!\n");
+		std::cout << goal->waypointList << std::endl;
+
+		/*for (int i = 0; i < newWaypointList.waypointList.size(); i++) {
+			const dji_ros::waypoint newWaypoint = newWaypointList.waypointList[i];	
+			waypoint_navigation_feedback.index_progress = i;
+			processWaypoint(newWaypoint);
+		}
+
+		waypoint_navigation_result.result = true;
+		waypoint_navigation_action_ptr->setSucceeded(waypoint_navigation_result);*/
+		// --- invalid end
+
+		return true;
+	}
+
 	void processWaypoint(dji_ros::waypoint newWaypoint) {
 
 		double dst_latitude = newWaypoint.latitude*C_PI/180;
@@ -275,6 +304,9 @@ namespace action_handler
 
 		waypoint_navigation_action_ptr = new waypoint_navigation_action_type(n,"DJI_ROS/waypoint_navigation_action", boost::bind(&waypoint_navigation_action_callback, _1, waypoint_navigation_action_ptr), false );
 		waypoint_navigation_action_ptr->start();
+
+		web_waypoint_receive_action_ptr = new web_waypoint_receive_action_type(n,"DJI_ROS/web_waypoint_receive_action", boost::bind(&web_waypoint_receive_action_callback, _1, web_waypoint_receive_action_ptr), false );
+		web_waypoint_receive_action_ptr->start();
 
 		return 0;
 	}

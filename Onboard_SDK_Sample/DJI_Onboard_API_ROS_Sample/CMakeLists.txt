@@ -83,6 +83,7 @@ add_action_files(
 	local_navigation.action
 	gps_navigation.action
 	waypoint_navigation.action
+	web_waypoint_receive.action
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -131,10 +132,15 @@ add_executable(dji_ros src/djiMain.cpp src/modules/djiVariable.cpp src/modules/d
 ## as an example, message headers may need to be generated before nodes
 add_dependencies(dji_ros dji_ros_generate_messages_cpp)
 
+
 ## Specify libraries to link a library or executable target against
 target_link_libraries(dji_ros
    ${catkin_LIBRARIES}
 )
+
+add_executable(web_waypoint_receive_action_test src/web_waypoint_receive_action_test.cpp)
+add_dependencies(web_waypoint_receive_action_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(web_waypoint_receive_action_test ${catkin_LIBRARIES})
 
 #############
 ## Install ##

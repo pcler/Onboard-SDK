@@ -16,7 +16,8 @@ static void Display_Main_Menu(void)
 	printf("[f] Local Navi Test\n");
 	printf("[g] GPS Navi Test\n");
 	printf("[h] Waypoint List Test\n");
-	printf("[i] Exit\n");
+	printf("[i] Web Waypoint Test\n");
+	printf("[j] Exit\n");
 	printf("\ninput a/b/c etc..then press enter key\r\n");
 	printf("\nuse `rostopic echo` to query drone status\r\n");
 	printf("----------------------------------------\r\n");
@@ -60,7 +61,7 @@ int main(int argc, char **argv)
 		temp32 = getchar();
 		if(temp32 != 10)
 		{
-			if(temp32 >= 'a' && temp32 <= 'i' && valid_flag == false)
+			if(temp32 >= 'a' && temp32 <= 'j' && valid_flag == false)
 			{
 				main_operate_code = temp32;
 				valid_flag = true;
@@ -210,6 +211,29 @@ int main(int argc, char **argv)
 				break;
 
 			case 'i':
+				// TODO: get waypoint
+				// --- invalid next line
+				newWaypointList.waypointList.push_back(waypoint4);
+
+				// put the waypointList to the action server
+				waypoint_navigation_action_client.waitForServer();
+				goal_waypoint.waypointList = newWaypointList;
+				waypoint_navigation_action_client.sendGoal(goal_waypoint);
+
+				finished_before_timeout = waypoint_navigation_action_client.waitForResult(ros::Duration(300.0));
+
+				if (finished_before_timeout)
+				{
+					actionlib::SimpleClientGoalState state = waypoint_navigation_action_client.getState();
+					ROS_INFO("Action finished: %s",state.toString().c_str());
+				}
+				else {
+					ROS_INFO("Action did not finish before the time out.");
+				}
+
+				break;
+
+			case 'j':
 				return 0;
 				break;
 

@@ -10,6 +10,7 @@ typedef actionlib::SimpleActionServer<dji_ros::taskAction> task_action_type;
 typedef actionlib::SimpleActionServer<dji_ros::local_navigationAction> local_navigation_action_type;
 typedef actionlib::SimpleActionServer<dji_ros::gps_navigationAction> gps_navigation_action_type;
 typedef actionlib::SimpleActionServer<dji_ros::waypoint_navigationAction> waypoint_navigation_action_type;
+typedef actionlib::SimpleActionServer<dji_ros::web_waypoint_receiveAction> web_waypoint_receive_action_type;
 
 namespace action_handler
 {
@@ -18,6 +19,7 @@ namespace action_handler
 	extern local_navigation_action_type* local_navigation_action_ptr;
 	extern gps_navigation_action_type* gps_navigation_action_ptr;
 	extern waypoint_navigation_action_type* waypoint_navigation_action_ptr;
+	extern web_waypoint_receive_action_type* web_waypoint_receive_action_ptr;
 
 	void processWaypoint(dji_ros::waypoint newWaypoint);
 	int init_actions(ros::NodeHandle &n);
