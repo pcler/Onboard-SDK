@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 	dji_ros::waypoint waypoint4;
 
 	Display_Main_Menu();
-	while(1)
+	while(ros::ok())
 	{
 		temp32 = getchar();
 		if(temp32 != 10)

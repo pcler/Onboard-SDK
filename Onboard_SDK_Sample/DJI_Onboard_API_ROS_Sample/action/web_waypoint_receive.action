@@ -1,4 +1,5 @@
 waypointList waypointList
+uint64 id
 ---
 bool result
 ---

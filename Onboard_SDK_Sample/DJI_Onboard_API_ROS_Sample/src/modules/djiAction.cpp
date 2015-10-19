@@ -1,8 +1,8 @@
 #include "djiAction.h"
+#include <std_msgs/UInt8.h>
+#include <iostream>
 #define C_EARTH (double) 6378137.0
 #define C_PI (double) 3.141592653589793
-
-#include <iostream>
 
 namespace action_handler
 {
@@ -28,6 +28,7 @@ namespace action_handler
 
 	dji_ros::web_waypoint_receiveFeedback web_waypoint_receive_feedback;
 	dji_ros::web_waypoint_receiveResult web_waypoint_receive_result;
+	uint8_t web_waypoint_cmd_code;
 
 
 	bool task_action_callback(const dji_ros::taskGoalConstPtr& goal, task_action_type* task_action)
@@ -205,15 +206,79 @@ namespace action_handler
 		return true;
 	}
 
+	//TODO: how to match last id and current id?
+	void web_waypoint_cmd_cb(const std_msgs::UInt8::ConstPtr& msg) {
+		web_waypoint_cmd_code = msg->data;
+		ROS_INFO("Set cmd code: %d", msg->data);
+	}
+
 	bool web_waypoint_receive_action_callback(const dji_ros::web_waypoint_receiveGoalConstPtr& goal, web_waypoint_receive_action_type* web_waypoint_receive_action)
 	{
-		//TODO: get the waypoints data from JS
-		// --- invalid begin
-		dji_ros::waypointList newWaypointList;
-		newWaypointList = goal->waypointList;
+		//judge last task state
+		if(web_waypoint_receive_feedback.stage == 2) { //stage 2: in progress
+			web_waypoint_receive_result.result = false;
+			web_waypoint_receive_action_ptr->setAborted(web_waypoint_receive_result, "Last task is in progress!");
+			return false;
+		}
+		if(web_waypoint_receive_feedback.stage == 3) { //stage 3: paused
+			web_waypoint_receive_result.result = false;
+			web_waypoint_receive_action_ptr->setAborted(web_waypoint_receive_result, "Last task is paused!");
+			return false;
+		}
 
-		ROS_INFO("Get!!!\n");
-		std::cout << goal->waypointList << std::endl;
+		//stage 0 to 1: get waypointList
+		dji_ros::waypointList newWaypointList = goal->waypointList;
+		uint64_t task_id = goal->id;
+
+		web_waypoint_receive_feedback.stage = 1;
+		web_waypoint_receive_feedback.index_progress = 0;
+
+		while(ros::ok()) {
+			//ros::spinOnce();
+			//ros::Duration(2.5).sleep();
+			if(web_waypoint_cmd_code == 's' && web_waypoint_receive_feedback.stage == 1) { //"s" for start
+				web_waypoint_receive_feedback.stage = 2;
+			}
+			if(web_waypoint_cmd_code == 'p' && web_waypoint_receive_feedback.stage == 2) { //"p" for pause
+				web_waypoint_receive_feedback.stage = 3;
+			}
+			if(web_waypoint_cmd_code == 'r' && web_waypoint_receive_feedback.stage == 3) { //"r" for resume
+				web_waypoint_receive_feedback.stage = 2;
+			}
+			if(web_waypoint_cmd_code == 'c') { //"c" for cancel
+				web_waypoint_receive_feedback.stage = 4;
+			}
+
+			ROS_INFO("Stage: %d", web_waypoint_receive_feedback.stage);
+			ROS_INFO("Code: %d", web_waypoint_cmd_code);
+
+			switch(web_waypoint_receive_feedback.stage) {
+				case 0:
+					web_waypoint_receive_result.result = false;
+					web_waypoint_receive_action_ptr->setAborted(web_waypoint_receive_result, "No waypointList received!");
+					break;
+				//case 1:
+				case 3:
+					continue;
+				case 1:
+				case 2:
+					//TODO: how to break the process?
+					for (int i = web_waypoint_receive_feedback.index_progress; i < newWaypointList.waypointList.size(); i++) {
+						const dji_ros::waypoint newWaypoint = newWaypointList.waypointList[i];	
+						web_waypoint_receive_feedback.index_progress = i;
+						ROS_INFO("Process waypoint: \n");
+						std::cout << newWaypoint << std::endl;
+						processWaypoint(newWaypoint);
+					}
+					web_waypoint_receive_result.result = true;
+					web_waypoint_receive_action_ptr->setSucceeded(web_waypoint_receive_result);
+					return true;
+				case 4:
+					web_waypoint_receive_result.result = false;
+					web_waypoint_receive_action_ptr->setAborted(web_waypoint_receive_result, "The task is canceled!");
+					return false;
+			}
+		}
 
 		/*for (int i = 0; i < newWaypointList.waypointList.size(); i++) {
 			const dji_ros::waypoint newWaypoint = newWaypointList.waypointList[i];	
@@ -223,7 +288,6 @@ namespace action_handler
 
 		waypoint_navigation_result.result = true;
 		waypoint_navigation_action_ptr->setSucceeded(waypoint_navigation_result);*/
-		// --- invalid end
 
 		return true;
 	}
@@ -305,6 +369,8 @@ namespace action_handler
 		waypoint_navigation_action_ptr = new waypoint_navigation_action_type(n,"DJI_ROS/waypoint_navigation_action", boost::bind(&waypoint_navigation_action_callback, _1, waypoint_navigation_action_ptr), false );
 		waypoint_navigation_action_ptr->start();
 
+		web_waypoint_receive_feedback.stage = 0; //stage 0: waiting for waypointList
+		//ros::Subscriber wwp_cmd_sub = n.subscribe("/DJI_ROS/web_waypoint_cmd", 1000, web_waypoint_cmd_cb);
 		web_waypoint_receive_action_ptr = new web_waypoint_receive_action_type(n,"DJI_ROS/web_waypoint_receive_action", boost::bind(&web_waypoint_receive_action_callback, _1, web_waypoint_receive_action_ptr), false );
 		web_waypoint_receive_action_ptr->start();
 
